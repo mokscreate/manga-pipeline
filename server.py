@@ -15,6 +15,14 @@ import subprocess
 import sys
 from flask import Flask, request, jsonify
 
+# 加载 .env 文件（如果存在）
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+
 app = Flask(__name__)
 
 
