@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+output/
+*.exe
+*.zip
+input_*.txt
+test_input.txt
+.env
