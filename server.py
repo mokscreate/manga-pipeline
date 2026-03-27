@@ -222,7 +222,7 @@ def api_download():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    print(f"📩 收到飞书 webhook：{request.json}")
+    print(f"收到飞书 webhook：{request.json}")
 
     def _feishu_pipeline():
         import subprocess
@@ -231,14 +231,15 @@ def webhook():
             env=os.environ.copy(),
             cwd=os.path.dirname(os.path.abspath(__file__)),
         )
-        print("\n✅ Pipeline 完成\n" if result.returncode == 0 else "\n❌ Pipeline 失败\n")
+        print("\nPipeline 完成\n" if result.returncode == 0 else "\nPipeline 失败\n")
 
     threading.Thread(target=_feishu_pipeline, daemon=True).start()
     return jsonify({"code": 0, "msg": "ok"})
 
 
 if __name__ == "__main__":
-    print("\n🌐 服务启动：http://localhost:5000")
+    port = int(os.environ.get("PORT", 5000))
+    print(f"\n服务启动：http://localhost:{port}")
     print("   打开浏览器访问上面的地址，粘贴剧本即可使用\n")
     print("   （飞书 webhook 地址保留在 /webhook，可选用）\n")
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=False)
