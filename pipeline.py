@@ -39,8 +39,7 @@ def make_clients() -> dict:
     """初始化 DeepSeek 客户端，缺少 Key 时给出明确提示。"""
     key = os.environ.get("DEEPSEEK_API_KEY")
     if not key:
-        print("❌ 缺少环境变量 DEEPSEEK_API_KEY")
-        sys.exit(1)
+        raise RuntimeError("缺少环境变量 DEEPSEEK_API_KEY，请在 .env 文件中填写")
     return {
         "deepseek": OpenAI(
             api_key=key,
@@ -223,6 +222,37 @@ def save_excel(script_text, characters_text, scenes_text, storyboard_text, outpu
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     wb.save(output_path)
     print(f"\n✅ Excel 已保存：{output_path}")
+
+
+# ── 可编程调用入口 ───────────────────────────────────────────
+
+def run_pipeline(novel_text: str, status_callback=None) -> str:
+    """运行完整 pipeline，返回 Excel 文件路径。"""
+    import datetime
+
+    def update(msg):
+        print(msg)
+        if status_callback:
+            status_callback(msg)
+
+    clients = make_clients()
+
+    update("⏳ Step1 生成推文文案中...")
+    script_text = step1_novel_to_script(clients, novel_text)
+    update("✅ Step1完成，正在提取角色设定...")
+
+    characters_text = step2_script_to_characters(clients, script_text)
+    update("✅ Step2完成，正在提取场景设定...")
+
+    scenes_text = step3_script_to_scenes(clients, script_text)
+    update("✅ Step3完成，正在生成分镜脚本...")
+
+    storyboard_text = step4_scenes_to_storyboard(clients, script_text, characters_text, scenes_text)
+
+    excel_path = f"output/result_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    save_excel(script_text, characters_text, scenes_text, storyboard_text, excel_path)
+    update("✅ 全部完成")
+    return excel_path
 
 
 # ── 主入口 ────────────────────────────────────────────────────

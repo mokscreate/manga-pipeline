@@ -1,13 +1,9 @@
 # 漫剧 AI 工作流
 
-把剧本丢进去，自动生成推文文案、角色设定、场景设定、分镜脚本，直接写入飞书多维表格，队友可在线协同。
-
----
-
-## 这个流程干什么的
+把剧本丢进网页，点一个按钮，自动生成推文文案、角色设定、场景设定、分镜脚本，结果打包成 Excel 下载。
 
 ```
-你输入剧本（或构思）
+浏览器粘贴剧本 → 点「开始生成」
         ↓
 Step 1：改写成第一人称短视频解说文案
         ↓
@@ -17,121 +13,141 @@ Step 3：提取所有场景设定
         ↓
 Step 4：生成分镜脚本（适配 Seedance 2.0 / 即梦）
         ↓
-写入飞书多维表格 + 保存 Excel 备份
+下载 Excel（含全部 4 个 Sheet）
 ```
 
 ---
 
-## 第一次使用前的准备
+## 快速开始（3 步）
 
-### 1. 安装依赖
+### 第一步：安装依赖
 
 ```bash
-cd D:/Desktop/漫剧/pipeline
+git clone https://github.com/mokscreate/manga-pipeline.git
+cd manga-pipeline
 pip install -r requirements.txt
-pip install requests
 ```
-
-### 2. 配置 API Key
-
-打开 `config.py`，填入你的 DeepSeek API Key：
-
-```python
-# 找到这一行，改成你自己的 key
-DEEPSEEK_API_KEY = "sk-你的key"
-```
-
-> 飞书配置已经填好，不用动。
 
 ---
 
-## 怎么用
+### 第二步：填写 API Key
 
-### 方式一：直接粘贴剧本（推荐）
+1. 打开 https://platform.deepseek.com/ 注册并创建一个 API Key
+2. 复制项目里的 `.env.example` 为 `.env`：
 
 ```bash
-cd D:/Desktop/漫剧/pipeline
-DEEPSEEK_API_KEY=sk-你的key python pipeline.py
+cp .env.example .env
 ```
 
-运行后会提示你粘贴内容，粘贴完成后：
-- Windows：按 `Ctrl+Z`，然后回车
-- Mac/Linux：按 `Ctrl+D`
+3. 编辑 `.env`，只需填一行：
 
-### 方式二：传入 txt 文件
+```
+DEEPSEEK_API_KEY=sk-你的DeepSeekKey
+```
 
-把剧本保存成 txt 文件，然后：
+---
+
+### 第三步：启动并使用
 
 ```bash
-DEEPSEEK_API_KEY=sk-你的key python pipeline.py 你的剧本.txt
+python server.py
 ```
 
----
+启动后打开浏览器访问：**http://localhost:5000**
 
-## 输入支持两种情况
+1. 粘贴剧本内容（完整剧本或草稿均可）
+2. 点「开始生成」
+3. 等待进度条走完（约 2–5 分钟，取决于剧本长度）
+4. 点「下载 Excel」获取结果
 
-| 情况 | 说明 |
-|------|------|
-| 完整剧本（800字以上） | 直接改写成解说文案 |
-| 不完整构思（800字以下） | AI 自动展开创作成完整文案 |
-
-不用手动区分，程序会自动判断。
-
----
-
-## 结果在哪里看
-
-**飞书多维表格（推荐，可协同）：**
-https://ix6mi6ge1v7.feishu.cn/base/I4AibJ2IDa2yVisgPOjc5A8AnJc
-
-**本地 Excel 备份：**
-`pipeline/output/` 文件夹里，文件名带时间戳，例如 `result_20260326_173059.xlsx`
-
-两个地方内容一样，飞书是给队友看的，Excel 是本地备份。
+> **输入字数说明**
+> | 输入类型 | 说明 |
+> |---------|------|
+> | 完整剧本（800字以上） | 直接改写成解说文案 |
+> | 不完整构思（800字以下） | AI 自动展开创作 |
 
 ---
 
-## 飞书表格里有哪些内容
+## 也可以命令行运行（不启动服务器）
 
-| Sheet | 内容 |
-|-------|------|
-| 推文文案 | 第一人称短视频解说文案，每段一行 |
-| 角色 | 所有角色的性别、年龄、性格、外貌、服装道具 |
-| 场景 | 所有场景的环境、氛围、道具清单 |
-| 分镜 | 每个镜头的景别、运镜、画面描述、对白、时长 |
+```bash
+# 从 txt 文件运行
+python pipeline.py 你的剧本.txt
+```
 
-每次运行会清空旧数据，写入新内容。
+结果保存在 `output/` 目录下的 Excel 文件里。
 
 ---
 
-## 文件说明
+## 修改 AI Prompt
+
+prompt 存储在 `prompts/` 目录下，直接编辑对应文件即可：
+
+| 文件 | 对应步骤 |
+|------|----------|
+| `prompts/step1_novel_to_script.py` | 推文文案改写 |
+| `prompts/step2_script_to_characters.py` | 角色提取 |
+| `prompts/step3_script_to_scenes.py` | 场景提取 |
+| `prompts/step4_scenes_to_storyboard.py` | 分镜生成 |
+
+---
+
+## 可选：飞书多维表格集成
+
+如果需要把结果自动写入飞书多维表格，额外配置以下内容：
+
+### 创建飞书机器人
+
+1. 打开 https://open.feishu.cn/app
+2. 点「创建企业自建应用」，填写名称
+3. 进入应用 → **凭证与基础信息**，复制 `App ID` 和 `App Secret`
+4. **权限管理** → 开启 `bitable:app` 权限
+5. **版本管理与发布** → 发布应用
+
+### 创建飞书多维表格
+
+1. 新建一个多维表格，URL 里的 `xxxxxxxx` 就是 `FEISHU_APP_TOKEN`
+2. 右上角「···」→「添加文档应用」→ 搜索刚才创建的应用，设为**可管理**
+3. 手动创建「**输入**」数据表，添加字段：`剧本内容`（文本）、`状态`（文本）
+
+### 补充 .env 配置
 
 ```
-pipeline/
-├── pipeline.py        主程序，运行这个
-├── config.py          配置文件（API Key、飞书配置）
-├── feishu.py          飞书写入模块
-├── prompts/           每个步骤的 AI 提示词
-│   ├── step1_novel_to_script.py     剧本→文案
-│   ├── step2_script_to_characters.py 文案→角色
-│   ├── step3_script_to_scenes.py    文案→场景
-│   └── step4_scenes_to_storyboard.py 文案→分镜
-├── output/            Excel 备份输出目录
-└── requirements.txt   依赖列表
+FEISHU_APP_ID=cli_你的AppID
+FEISHU_APP_SECRET=你的AppSecret
+FEISHU_APP_TOKEN=你的多维表格Token
+```
+
+### 配置飞书自动化按钮（需要 ngrok）
+
+1. 注册 https://ngrok.com/ 免费账号，申请固定域名
+2. 启动 ngrok：
+   ```bash
+   ./ngrok http --domain=你的固定域名.ngrok-free.app 5000
+   ```
+3. 在飞书多维表格「自动化」里新建规则：
+   - 触发条件：**点击按钮时**
+   - 执行动作：**发送 HTTP 请求**
+   - URL：`https://你的固定域名.ngrok-free.app/webhook`
+   - 方法：POST，Body：`{"source": "feishu"}`
+
+也可以直接命令行触发飞书模式：
+```bash
+python pipeline.py --feishu
 ```
 
 ---
 
 ## 常见问题
 
-**Q：运行报错 `DEEPSEEK_API_KEY` 缺失？**
-A：在命令前加上 `DEEPSEEK_API_KEY=sk-你的key`，或者直接在 `config.py` 里写死。
+**Q：浏览器打开 localhost:5000 没反应？**
+A：确认 `python server.py` 已经在运行，检查终端有无报错。
 
-**Q：飞书写入报错 Forbidden？**
-A：确认飞书多维表格已将应用添加为可编辑成员（表格右上角「分享」→添加应用）。
+**Q：生成失败，提示缺少 API Key？**
+A：检查 `.env` 文件是否存在，`DEEPSEEK_API_KEY` 是否正确填写（以 `sk-` 开头）。
 
-**Q：分镜 Sheet 是空的？**
-A：DeepSeek 偶尔不按格式输出，重新跑一次通常能解决。
+**Q：飞书写入报错 FieldNameNotFound？**
+A：删掉飞书里的「分镜」表，下次运行会用新字段自动重建。
 
-**Q：Excel 报错 PermissionError？**
-A：把 output 文件夹里的 xlsx 文件关掉（不要在 Excel 里打开着），再重新跑。
+**Q：状态字段没有变化？**
+A：检查飞书机器人是否有 `bitable:app` 权限，以及是否已添加为表格的可管理成员。

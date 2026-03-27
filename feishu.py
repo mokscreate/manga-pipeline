@@ -240,4 +240,4 @@ def save_to_feishu(script_text, characters_text, scenes_text, storyboard_text):
         batch_insert(token, table_id, rows)
         print(f"  ✓ [{name}]：{len(rows)} 条记录已写入")
 
-    print(f"\n✅ 飞书多维表格更新完成：https://ix6mi6ge1v7.feishu.cn/base/{FEISHU_APP_TOKEN}")
+    print(f"\n✅ 飞书多维表格更新完成（表格 token：{FEISHU_APP_TOKEN}）")
