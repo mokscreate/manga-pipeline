@@ -296,19 +296,19 @@ def main():
     update_status("⏳ Step1 生成推文文案中...")
     script_text = step1_novel_to_script(clients, novel_text)
     flush_to_feishu("推文文案", ["序号", "段落内容"], parse_script_paragraphs(script_text))
+    update_status("✅ Step1完成，正在提取角色设定...")
 
     print("\n[2/4] 正在提取角色设定...")
-    update_status("⏳ Step2 提取角色设定中...")
     characters_text = step2_script_to_characters(clients, script_text)
     flush_to_feishu("角色", SHEET_COLUMNS["角色"], feishu_parse_table(characters_text, SHEET_COLUMNS["角色"]))
+    update_status("✅ Step2完成，正在提取场景设定...")
 
     print("\n[3/4] 正在提取场景设定...")
-    update_status("⏳ Step3 提取场景设定中...")
     scenes_text = step3_script_to_scenes(clients, script_text)
     flush_to_feishu("场景", SHEET_COLUMNS["场景"], feishu_parse_table(scenes_text, SHEET_COLUMNS["场景"]))
+    update_status("✅ Step3完成，正在生成分镜脚本...")
 
     print("\n[4/4] 正在生成分镜脚本...")
-    update_status("⏳ Step4 生成分镜脚本中...")
     storyboard_text = step4_scenes_to_storyboard(clients, script_text, characters_text, scenes_text)
     flush_to_feishu("分镜", SHEET_COLUMNS["分镜"], feishu_parse_table(storyboard_text, SHEET_COLUMNS["分镜"]))
 
@@ -316,8 +316,8 @@ def main():
     save_excel(script_text, characters_text, scenes_text, storyboard_text, OUTPUT_EXCEL)
 
     if record_id and token:
-        mark_input_done(token, record_id, status="已完成")
-        print("  ✓ 输入记录已标记为「已完成」")
+        mark_input_done(token, record_id, status="✅ 全部完成")
+        print("  ✓ 输入记录已标记为「全部完成」")
 
 
 if __name__ == "__main__":

@@ -4,10 +4,22 @@ feishu.py — 飞书多维表格读写模块
 - 将四个步骤的输出写入对应数据表
 """
 
+import os
 import time
 import requests
 
-from config import SHEET_COLUMNS, FEISHU_APP_ID, FEISHU_APP_SECRET, FEISHU_APP_TOKEN
+# 加载 .env 文件（如果存在）
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+from config import SHEET_COLUMNS
+
+FEISHU_APP_ID     = os.environ.get("FEISHU_APP_ID", "")
+FEISHU_APP_SECRET = os.environ.get("FEISHU_APP_SECRET", "")
+FEISHU_APP_TOKEN  = os.environ.get("FEISHU_APP_TOKEN", "")
 
 
 # ── Token 管理 ────────────────────────────────────────────────

@@ -49,7 +49,7 @@ def reset_input_status():
                 f"https://open.feishu.cn/open-apis/bitable/v1/apps/{FEISHU_APP_TOKEN}/tables/{table_id}/records/{item['record_id']}",
                 headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
                 json={"fields": {
-                    "状态": "待处理",
+                    "状态": "",
                     "剧本状态": "",
                     "人物场景状态": "",
                     "分镜状态": "",
