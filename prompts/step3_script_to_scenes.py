@@ -26,7 +26,9 @@ o【主要特征】：[具体的材质、核心物件、前中后景的标志性
 Prompt（直接复制）：不能出现其他人，无人，纯场景，[将上述所有环境细节融合成一段精简、极具冲击力的生图描述词，包含: no humans, empty, landscape only]
 
 最后，将每个场景的完整设定整理为如下格式（每个场景一行，字段用 ||| 分隔），附在所有场景详细描述之后：
-序号 ||| 场景名 ||| 室内外 ||| 时间 ||| 环境描述 ||| 氛围 ||| 道具清单 ||| 备注
+序号 ||| 场景名 ||| 室内外 ||| 时间 ||| 环境描述 ||| 氛围 ||| 道具清单 ||| prompt ||| 备注
+
+其中 prompt 列填写：基于该场景的环境描述、氛围、道具等特征，生成一段适合 AI 绘图工具使用的英文 prompt，必须以 "no humans, empty, landscape only" 开头，然后描述场景的具体视觉特征（如：no humans, empty, landscape only, abandoned warehouse interior, dim lighting, dusty atmosphere, broken windows, cinematic, high quality）
 
 ---推文文案---
 {script_text}

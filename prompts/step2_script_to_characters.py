@@ -22,7 +22,9 @@ o鞋履配饰：[匹配的鞋子；除非文案明确要求，否则不加冗余
 核心规则：多个角色之间的服装款式与色彩方案必须有显著区别，严禁撞衫。
 
 最后，将每个角色的完整设定整理为如下格式（每个角色一行，字段用 ||| 分隔），附在所有角色详细描述之后：
-序号 ||| 角色名 ||| 性别 ||| 年龄 ||| 性格特点 ||| 外貌描述 ||| 服装道具 ||| 备注
+序号 ||| 角色名 ||| 性别 ||| 年龄 ||| 性格特点 ||| 外貌描述 ||| 服装道具 ||| prompt ||| 备注
+
+其中 prompt 列填写：基于该角色的外貌、服装、年龄、性格特征，生成一段适合 AI 绘图工具（如 Stable Diffusion / MidJourney）使用的英文 prompt，要求简洁、具体、包含关键视觉特征（如：a 25-year-old Chinese male, short black hair, white shirt, confident expression, cinematic lighting, high quality）
 
 ---推文文案---
 {script_text}
