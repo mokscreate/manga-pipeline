@@ -105,7 +105,7 @@ def batch_insert(token: str, table_id: str, rows: list):
             timeout=15,
         )
         if resp.json().get("code") != 0:
-            print(f"  ⚠ 写入第 {i+1}-{i+len(batch)} 条时出错：{resp.json()}")
+            print(f"  写入第 {i+1}-{i+len(batch)} 条时出错：{resp.json()}")
         time.sleep(0.3)
 
 
@@ -217,13 +217,13 @@ def init_prompts_to_feishu(token: str, prompts: dict):
     clear_table(token, table_id)
     rows = [{"步骤名": k, "prompt内容": v} for k, v in prompts.items()]
     batch_insert(token, table_id, rows)
-    print(f"  ✓ 飞书[prompt]表已初始化，{len(rows)} 个步骤")
+    print(f"  飞书[prompt]表已初始化，{len(rows)} 个步骤")
 
 
 # ── 主写入入口 ────────────────────────────────────────────────
 
 def save_to_feishu(script_text, characters_text, scenes_text, storyboard_text):
-    print("\n📡 正在写入飞书多维表格...")
+    print("\n正在写入飞书多维表格...")
     token = get_token()
     existing = list_tables(token)
 
@@ -238,6 +238,6 @@ def save_to_feishu(script_text, characters_text, scenes_text, storyboard_text):
         table_id = ensure_table(token, name, fields, existing)
         clear_table(token, table_id)
         batch_insert(token, table_id, rows)
-        print(f"  ✓ [{name}]：{len(rows)} 条记录已写入")
+        print(f"  [{name}]：{len(rows)} 条记录已写入")
 
-    print(f"\n✅ 飞书多维表格更新完成（表格 token：{FEISHU_APP_TOKEN}）")
+    print(f"\n飞书多维表格更新完成（表格 token：{FEISHU_APP_TOKEN}）")

@@ -58,7 +58,7 @@ def call_model(clients: dict, step_key: str, prompt: str) -> str:
     max_tokens = cfg["max_tokens"]
 
     print(f"\n{'='*60}")
-    print(f"  ▶ [{step_key}]  provider={provider}  model={model}")
+    print(f"  [{step_key}]  provider={provider}  model={model}")
     print(f"{'='*60}\n")
 
     full_text = ""
@@ -75,7 +75,7 @@ def call_model(clients: dict, step_key: str, prompt: str) -> str:
         print(delta, end="", flush=True)
         full_text += delta
 
-    print(f"\n\n  ✓ {step_key} 完成（{len(full_text)} 字符）\n")
+    print(f"\n\n  {step_key} 完成（{len(full_text)} 字符）\n")
     return full_text
 
 
@@ -221,7 +221,7 @@ def save_excel(script_text, characters_text, scenes_text, storyboard_text, outpu
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     wb.save(output_path)
-    print(f"\n✅ Excel 已保存：{output_path}")
+    print(f"\nExcel 已保存：{output_path}")
 
 
 # ── 可编程调用入口 ───────────────────────────────────────────
@@ -237,21 +237,58 @@ def run_pipeline(novel_text: str, status_callback=None) -> str:
 
     clients = make_clients()
 
-    update("⏳ Step1 生成推文文案中...")
+    update("Step1 生成推文文案中...")
     script_text = step1_novel_to_script(clients, novel_text)
-    update("✅ Step1完成，正在提取角色设定...")
+    update("Step1完成，正在提取角色设定...")
 
     characters_text = step2_script_to_characters(clients, script_text)
-    update("✅ Step2完成，正在提取场景设定...")
+    update("Step2完成，正在提取场景设定...")
 
     scenes_text = step3_script_to_scenes(clients, script_text)
-    update("✅ Step3完成，正在生成分镜脚本...")
+    update("Step3完成，正在生成分镜脚本...")
 
     storyboard_text = step4_scenes_to_storyboard(clients, script_text, characters_text, scenes_text)
 
     excel_path = f"output/result_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     save_excel(script_text, characters_text, scenes_text, storyboard_text, excel_path)
-    update("✅ 全部完成")
+    update("全部完成")
+    return excel_path
+
+
+def run_pipeline_with_results(novel_text: str, status_callback=None, result_callback=None) -> str:
+    """运行完整 pipeline，返回 Excel 文件路径，并通过 callback 返回中间结果。"""
+    import datetime
+
+    def update(msg):
+        print(msg)
+        if status_callback:
+            status_callback(msg)
+
+    clients = make_clients()
+
+    update("Step1 生成推文文案中...")
+    script_text = step1_novel_to_script(clients, novel_text)
+    if result_callback:
+        result_callback("script", script_text)
+    update("Step1完成，正在提取角色设定...")
+
+    characters_text = step2_script_to_characters(clients, script_text)
+    if result_callback:
+        result_callback("characters", characters_text)
+    update("Step2完成，正在提取场景设定...")
+
+    scenes_text = step3_script_to_scenes(clients, script_text)
+    if result_callback:
+        result_callback("scenes", scenes_text)
+    update("Step3完成，正在生成分镜脚本...")
+
+    storyboard_text = step4_scenes_to_storyboard(clients, script_text, characters_text, scenes_text)
+    if result_callback:
+        result_callback("storyboard", storyboard_text)
+
+    excel_path = f"output/result_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    save_excel(script_text, characters_text, scenes_text, storyboard_text, excel_path)
+    update("全部完成")
     return excel_path
 
 
@@ -262,29 +299,29 @@ def main():
     feishu_mode = "--feishu" in args
 
     if feishu_mode:
-        print("🔗 正在从飞书读取剧本...")
+        print("正在从飞书读取剧本...")
         token = get_token()
         record_id, novel_text = read_input_from_feishu(token)
-        print(f"📖 已读取飞书输入（{len(novel_text)} 字符）")
+        print(f"已读取飞书输入（{len(novel_text)} 字符）")
     elif args and not args[0].startswith("--"):
         novel_path = args[0]
         novel_text = Path(novel_path).read_text(encoding="utf-8")
         token = None
         record_id = None
-        print(f"📖 已读取文件：{novel_path}（{len(novel_text)} 字符）")
+        print(f"已读取文件：{novel_path}（{len(novel_text)} 字符）")
     else:
         print("📋 请粘贴剧本内容，输入完成后按 Ctrl+Z 然后回车（Windows）或 Ctrl+D（Mac/Linux）：")
         novel_text = sys.stdin.read()
         token = None
         record_id = None
-        print(f"📖 已读取输入（{len(novel_text)} 字符）")
+        print(f"已读取输入（{len(novel_text)} 字符）")
 
     global _feishu_prompts
     try:
         _token = token or get_token()
         _feishu_prompts = read_prompts_from_feishu(_token)
         if not _feishu_prompts:
-            print("📝 飞书prompt表为空，正在初始化...")
+            print("飞书prompt表为空，正在初始化...")
             import prompts.step1_novel_to_script as _p1
             import prompts.step2_script_to_characters as _p2
             import prompts.step3_script_to_scenes as _p3
@@ -298,9 +335,9 @@ def main():
             init_prompts_to_feishu(_token, local_prompts)
             _feishu_prompts = local_prompts
         else:
-            print(f"✅ 已从飞书加载 {len(_feishu_prompts)} 个prompt")
+            print(f"已从飞书加载 {len(_feishu_prompts)} 个prompt")
     except Exception as e:
-        print(f"⚠ 飞书prompt加载失败，使用本地文件：{e}")
+        print(f"飞书prompt加载失败，使用本地文件：{e}")
         _feishu_prompts = {}
 
     clients = make_clients()
@@ -318,36 +355,36 @@ def main():
         table_id = ensure_table(t, sheet_name, fields, existing)
         clear_table(t, table_id)
         batch_insert(t, table_id, rows)
-        print(f"  ✓ 飞书[{sheet_name}]已写入 {len(rows)} 条")
+        print(f"  飞书[{sheet_name}]已写入 {len(rows)} 条")
 
     from feishu import parse_script_paragraphs, parse_table as feishu_parse_table
 
     print("\n[1/4] 正在生成推文文案...")
-    update_status("⏳ Step1 生成推文文案中...")
+    update_status("Step1 生成推文文案中...")
     script_text = step1_novel_to_script(clients, novel_text)
     flush_to_feishu("推文文案", ["序号", "段落内容"], parse_script_paragraphs(script_text))
-    update_status("✅ Step1完成，正在提取角色设定...")
+    update_status("Step1完成，正在提取角色设定...")
 
     print("\n[2/4] 正在提取角色设定...")
     characters_text = step2_script_to_characters(clients, script_text)
     flush_to_feishu("角色", SHEET_COLUMNS["角色"], feishu_parse_table(characters_text, SHEET_COLUMNS["角色"]))
-    update_status("✅ Step2完成，正在提取场景设定...")
+    update_status("Step2完成，正在提取场景设定...")
 
     print("\n[3/4] 正在提取场景设定...")
     scenes_text = step3_script_to_scenes(clients, script_text)
     flush_to_feishu("场景", SHEET_COLUMNS["场景"], feishu_parse_table(scenes_text, SHEET_COLUMNS["场景"]))
-    update_status("✅ Step3完成，正在生成分镜脚本...")
+    update_status("Step3完成，正在生成分镜脚本...")
 
     print("\n[4/4] 正在生成分镜脚本...")
     storyboard_text = step4_scenes_to_storyboard(clients, script_text, characters_text, scenes_text)
     flush_to_feishu("分镜", SHEET_COLUMNS["分镜"], feishu_parse_table(storyboard_text, SHEET_COLUMNS["分镜"]))
 
-    print("\n📊 正在生成 Excel...")
+    print("\n正在生成 Excel...")
     save_excel(script_text, characters_text, scenes_text, storyboard_text, OUTPUT_EXCEL)
 
     if record_id and token:
-        mark_input_done(token, record_id, status="✅ 全部完成")
-        print("  ✓ 输入记录已标记为「全部完成」")
+        mark_input_done(token, record_id, status="全部完成")
+        print("  输入记录已标记为「全部完成」")
 
 
 if __name__ == "__main__":
