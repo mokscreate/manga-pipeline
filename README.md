@@ -108,6 +108,23 @@ python pipeline.py 你的剧本.txt
 
 ---
 
+## 使用 Claude Code Skill（可选）
+
+如果你使用 [Claude Code](https://claude.ai/code)，项目已包含一个便捷的 skill：
+
+```
+/manga-server
+```
+
+这个命令会显示：
+- 完整的功能说明
+- 启动命令
+- 使用步骤
+
+Skill 文件位置：`.claude/skills/manga-server.md`
+
+---
+
 ## 功能特性
 
 ### 主页功能
