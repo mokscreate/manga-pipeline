@@ -737,8 +737,10 @@ function loadHistoryDetail(id) {
 
     document.getElementById('btnReset').style.display = 'inline-block';
     document.getElementById('btnEdit').style.display = 'inline-block';
+    document.getElementById('btnGenerateImages').style.display = 'inline-block';
     document.getElementById('btnExport').style.display = 'inline-block';
     document.getElementById('status').textContent = '已加载历史记录';
+    currentStep = 3;  // 设置为 Step3 完成状态
     setStep(5);
 
     window.currentExcelPath = data.excel_path;
@@ -815,9 +817,9 @@ IMAGE_GEN_HTML = """
   .style-option:hover { border-color: #9c27b0; }
   .style-option.selected { border-color: #9c27b0; background: #f3e5f5; font-weight: 600; }
 
-  .item-list { display: flex; flex-direction: column; gap: 12px; }
-  .item { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid #e0e0e0;
+  .item { display: flex; flex-direction: column; gap: 12px; padding: 12px; border: 1px solid #e0e0e0;
           border-radius: 8px; background: #fafafa; }
+  .item-header { display: flex; align-items: center; gap: 12px; }
   .item-info { flex: 1; }
   .item-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
   .item-desc { font-size: 0.85rem; color: #666; }
@@ -825,15 +827,45 @@ IMAGE_GEN_HTML = """
   .btn-generate { background: #9c27b0; color: #fff; }
   .btn-regenerate { background: #f57c00; color: #fff; }
 
-  .item-image { margin-top: 12px; border-radius: 8px; overflow: hidden; }
-  .item-image img { width: 100%; display: block; }
+  .prompt-editor { display: none; margin-top: 12px; padding: 12px; background: #fff; border-radius: 6px; border: 1px solid #ddd; }
+  .prompt-editor.show { display: block; }
+  .prompt-editor label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
+  .prompt-editor textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;
+                            font-size: 0.85rem; font-family: monospace; resize: vertical; min-height: 80px; }
+  .prompt-editor .controls { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+  .prompt-editor input[type="number"] { width: 60px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; }
+
+  .item-images { margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }
+  .image-version { padding: 10px; background: #fff; border-radius: 6px; border: 1px solid #ddd; }
+  .image-version-header { font-size: 0.85rem; color: #666; margin-bottom: 8px; }
+  .image-version-images { display: flex; gap: 8px; flex-wrap: wrap; }
+  .image-version img { width: 150px; height: 84px; object-fit: cover; border-radius: 4px; cursor: pointer; transition: transform .2s; }
+  .image-version img:hover { transform: scale(1.05); }
 
   .loading { color: #9c27b0; font-size: 0.85rem; }
+
+  /* 大图查看器 */
+  .image-viewer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9);
+                  z-index: 9999; justify-content: center; align-items: center; }
+  .image-viewer.show { display: flex; }
+  .image-viewer img { max-width: 90%; max-height: 90%; border-radius: 8px; }
+  .image-viewer-close { position: absolute; top: 20px; right: 20px; color: #fff; font-size: 2rem;
+                        cursor: pointer; background: rgba(0,0,0,0.5); width: 40px; height: 40px;
+                        border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 </style>
 </head>
 <body>
 <h1>生成角色场景图</h1>
 <p class="sub">选择风格后，为每个角色和场景单独生成参考图</p>
+
+<div class="section">
+  <h2>API 配置</h2>
+  <div style="display: flex; gap: 12px; align-items: center;">
+    <label style="font-size: 0.9rem; font-weight: 600;">NanoBanana API Key:</label>
+    <input type="text" id="nanoBananaKey" placeholder="sk-..."
+           style="flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem;">
+  </div>
+</div>
 
 <div class="row">
   <button id="btnBack" onclick="goBack()">返回主页</button>
@@ -842,11 +874,43 @@ IMAGE_GEN_HTML = """
 <div class="section">
   <h2>选择生成风格</h2>
   <div class="style-selector">
-    <div class="style-option" onclick="selectStyle('3D玄幻')">3D 玄幻</div>
-    <div class="style-option" onclick="selectStyle('2D动画')">2D 动画</div>
-    <div class="style-option" onclick="selectStyle('真人电影')">真人电影</div>
-    <div class="style-option" onclick="selectStyle('真人古装')">真人古装</div>
-    <div class="style-option" onclick="selectStyle('3D写实')">3D 写实</div>
+    <div class="style-option" data-style="3D玄幻" onclick="selectStyle('3D玄幻')">3D 玄幻</div>
+    <div class="style-option" data-style="2D动画" onclick="selectStyle('2D动画')">2D 动画</div>
+    <div class="style-option" data-style="真人电影" onclick="selectStyle('真人电影')">真人电影</div>
+    <div class="style-option" data-style="真人古装" onclick="selectStyle('真人古装')">真人古装</div>
+    <div class="style-option" data-style="3D写实" onclick="selectStyle('3D写实')">3D 写实</div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>选择生成模型</h2>
+  <div class="style-selector">
+    <div class="style-option" data-model="nano-banana-pro" onclick="selectModel('nano-banana-pro')">Pro（推荐）</div>
+    <div class="style-option" data-model="nano-banana-2-4k" onclick="selectModel('nano-banana-2-4k')">2-4K</div>
+    <div class="style-option" data-model="nano-banana-2-2k" onclick="selectModel('nano-banana-2-2k')">2-2K</div>
+    <div class="style-option" data-model="nano-banana-2" onclick="selectModel('nano-banana-2')">2</div>
+    <div class="style-option" data-model="nano-banana-hd" onclick="selectModel('nano-banana-hd')">HD</div>
+    <div class="style-option" data-model="nano-banana" onclick="selectModel('nano-banana')">标准</div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>选择图片比例</h2>
+  <div class="style-selector">
+    <div class="style-option" data-ratio="1:1" onclick="selectRatio('1:1')">1:1</div>
+    <div class="style-option" data-ratio="16:9" onclick="selectRatio('16:9')">16:9（推荐）</div>
+    <div class="style-option" data-ratio="9:16" onclick="selectRatio('9:16')">9:16</div>
+    <div class="style-option" data-ratio="21:9" onclick="selectRatio('21:9')">21:9</div>
+    <div class="style-option" data-ratio="4:3" onclick="selectRatio('4:3')">4:3</div>
+    <div class="style-option" data-ratio="3:4" onclick="selectRatio('3:4')">3:4</div>
+    <div class="style-option" data-ratio="3:2" onclick="selectRatio('3:2')">3:2</div>
+    <div class="style-option" data-ratio="2:3" onclick="selectRatio('2:3')">2:3</div>
+    <div class="style-option" data-ratio="5:4" onclick="selectRatio('5:4')">5:4</div>
+    <div class="style-option" data-ratio="4:5" onclick="selectRatio('4:5')">4:5</div>
+    <div class="style-option" data-ratio="8:1" onclick="selectRatio('8:1')">8:1</div>
+    <div class="style-option" data-ratio="4:1" onclick="selectRatio('4:1')">4:1</div>
+    <div class="style-option" data-ratio="1:4" onclick="selectRatio('1:4')">1:4</div>
+    <div class="style-option" data-ratio="1:8" onclick="selectRatio('1:8')">1:8</div>
   </div>
 </div>
 
@@ -860,12 +924,33 @@ IMAGE_GEN_HTML = """
   <div id="sceneList" class="item-list"></div>
 </div>
 
+<div class="image-viewer" id="imageViewer" onclick="closeImageViewer()">
+  <div class="image-viewer-close">&times;</div>
+  <img id="viewerImage" src="" alt="">
+</div>
+
 <script>
 let selectedStyle = '';
+let selectedModel = '';
+let selectedRatio = '16:9';  // 默认 16:9
 let characters = [];
 let scenes = [];
 
 window.onload = function() {
+  // 从 localStorage 加载 API key
+  const savedKey = localStorage.getItem('nanobanana_api_key');
+  if (savedKey) {
+    document.getElementById('nanoBananaKey').value = savedKey;
+  }
+
+  // 监听 API key 输入变化，自动保存
+  document.getElementById('nanoBananaKey').addEventListener('input', function() {
+    localStorage.setItem('nanobanana_api_key', this.value);
+  });
+
+  // 默认选中 16:9 比例
+  selectRatio('16:9');
+
   loadData();
 };
 
@@ -887,8 +972,10 @@ function loadData() {
     characters.push({
       name: parts[0],
       description: parts.slice(1).join(' '),
-      imageUrl: null,
-      generating: false
+      images: [],  // 存储所有生成的图片
+      generating: false,
+      showPromptEditor: false,
+      currentPrompt: ''
     });
   }
 
@@ -901,8 +988,10 @@ function loadData() {
     scenes.push({
       name: parts[0],
       description: parts.slice(1).join(' '),
-      imageUrl: null,
-      generating: false
+      images: [],  // 存储所有生成的图片
+      generating: false,
+      showPromptEditor: false,
+      currentPrompt: ''
     });
   }
 
@@ -911,8 +1000,45 @@ function loadData() {
 
 function selectStyle(style) {
   selectedStyle = style;
-  document.querySelectorAll('.style-option').forEach(el => {
-    el.classList.toggle('selected', el.textContent === style);
+  document.querySelectorAll('.style-option[data-style]').forEach(el => {
+    if (el.getAttribute('data-style') === style) {
+      el.classList.add('selected');
+    } else {
+      el.classList.remove('selected');
+    }
+  });
+}
+
+function selectModel(model) {
+  selectedModel = model;
+  document.querySelectorAll('.style-option[data-model]').forEach(el => {
+    if (el.getAttribute('data-model') === model) {
+      el.classList.add('selected');
+    } else {
+      el.classList.remove('selected');
+    }
+  });
+}
+
+function selectRatio(ratio) {
+  selectedRatio = ratio;
+  document.querySelectorAll('.style-option[data-ratio]').forEach(el => {
+    if (el.getAttribute('data-ratio') === ratio) {
+      el.classList.add('selected');
+    } else {
+      el.classList.remove('selected');
+    }
+  });
+}
+
+function selectRatio(ratio) {
+  selectedRatio = ratio;
+  document.querySelectorAll('.style-option[data-ratio]').forEach(el => {
+    if (el.getAttribute('data-ratio') === ratio) {
+      el.classList.add('selected');
+    } else {
+      el.classList.remove('selected');
+    }
   });
 }
 
@@ -920,19 +1046,37 @@ function renderLists() {
   let html = '';
   characters.forEach((char, idx) => {
     html += `<div class="item">
-      <div class="item-info">
-        <div class="item-name">${escapeHtml(char.name)}</div>
-        <div class="item-desc">${escapeHtml(char.description)}</div>
-        ${char.imageUrl ? `<div class="item-image"><img src="${char.imageUrl}" alt="${escapeHtml(char.name)}"></div>` : ''}
+      <div class="item-header">
+        <div class="item-info">
+          <div class="item-name">${escapeHtml(char.name)}</div>
+          <div class="item-desc">${escapeHtml(char.description)}</div>
+        </div>
+        <div class="item-actions">
+          ${char.generating ? '<span class="loading">生成中...</span>' :
+            `<button class="btn-small btn-generate" onclick="showPromptEditor('character', ${idx})">生成图片</button>`
+          }
+        </div>
       </div>
-      <div class="item-actions">
-        ${char.generating ? '<span class="loading">生成中...</span>' :
-          (char.imageUrl ?
-            `<button class="btn-small btn-regenerate" onclick="generateImage('character', ${idx})">重新生成</button>` :
-            `<button class="btn-small btn-generate" onclick="generateImage('character', ${idx})">生成</button>`
-          )
-        }
+      <div class="prompt-editor ${char.showPromptEditor ? 'show' : ''}" id="prompt-character-${idx}">
+        <label>Prompt（可修改）</label>
+        <textarea id="prompt-text-character-${idx}">${escapeHtml(char.currentPrompt)}</textarea>
+        <div class="controls">
+          <label>生成数量：</label>
+          <input type="number" id="prompt-count-character-${idx}" value="1" min="1" max="4">
+          <button class="btn-small btn-generate" onclick="confirmGenerate('character', ${idx})">确认生成</button>
+          <button class="btn-small" onclick="cancelPromptEditor('character', ${idx})" style="background:#999;color:#fff">取消</button>
+        </div>
       </div>
+      ${char.images.length > 0 ? `<div class="item-images">
+        ${char.images.map((img, imgIdx) => `
+          <div class="image-version">
+            <div class="image-version-header">版本 ${imgIdx + 1} - ${img.timestamp}</div>
+            <div class="image-version-images">
+              ${img.urls.map(url => `<img src="${url}" alt="${escapeHtml(char.name)}" loading="lazy" onclick="showImageViewer('${url}')">`).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>` : ''}
     </div>`;
   });
   document.getElementById('characterList').innerHTML = html;
@@ -940,57 +1084,138 @@ function renderLists() {
   html = '';
   scenes.forEach((scene, idx) => {
     html += `<div class="item">
-      <div class="item-info">
-        <div class="item-name">${escapeHtml(scene.name)}</div>
-        <div class="item-desc">${escapeHtml(scene.description)}</div>
-        ${scene.imageUrl ? `<div class="item-image"><img src="${scene.imageUrl}" alt="${escapeHtml(scene.name)}"></div>` : ''}
+      <div class="item-header">
+        <div class="item-info">
+          <div class="item-name">${escapeHtml(scene.name)}</div>
+          <div class="item-desc">${escapeHtml(scene.description)}</div>
+        </div>
+        <div class="item-actions">
+          ${scene.generating ? '<span class="loading">生成中...</span>' :
+            `<button class="btn-small btn-generate" onclick="showPromptEditor('scene', ${idx})">生成图片</button>`
+          }
+        </div>
       </div>
-      <div class="item-actions">
-        ${scene.generating ? '<span class="loading">生成中...</span>' :
-          (scene.imageUrl ?
-            `<button class="btn-small btn-regenerate" onclick="generateImage('scene', ${idx})">重新生成</button>` :
-            `<button class="btn-small btn-generate" onclick="generateImage('scene', ${idx})">生成</button>`
-          )
-        }
+      <div class="prompt-editor ${scene.showPromptEditor ? 'show' : ''}" id="prompt-scene-${idx}">
+        <label>Prompt（可修改）</label>
+        <textarea id="prompt-text-scene-${idx}">${escapeHtml(scene.currentPrompt)}</textarea>
+        <div class="controls">
+          <label>生成数量：</label>
+          <input type="number" id="prompt-count-scene-${idx}" value="1" min="1" max="4">
+          <button class="btn-small btn-generate" onclick="confirmGenerate('scene', ${idx})">确认生成</button>
+          <button class="btn-small" onclick="cancelPromptEditor('scene', ${idx})" style="background:#999;color:#fff">取消</button>
+        </div>
       </div>
+      ${scene.images.length > 0 ? `<div class="item-images">
+        ${scene.images.map((img, imgIdx) => `
+          <div class="image-version">
+            <div class="image-version-header">版本 ${imgIdx + 1} - ${img.timestamp}</div>
+            <div class="image-version-images">
+              ${img.urls.map(url => `<img src="${url}" alt="${escapeHtml(scene.name)}" loading="lazy" onclick="showImageViewer('${url}')">`).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>` : ''}
     </div>`;
   });
   document.getElementById('sceneList').innerHTML = html;
 }
 
-function generateImage(type, index) {
+function showPromptEditor(type, index) {
   if (!selectedStyle) {
     alert('请先选择生成风格');
     return;
   }
-
-  const nanobananaKey = sessionStorage.getItem('nanobanana_api_key') || '';
-  if (!nanobananaKey) {
-    alert('请先在主页填写 NanoBanana API Key');
+  if (!selectedModel) {
+    alert('请先选择生成模型');
     return;
   }
 
   const item = type === 'character' ? characters[index] : scenes[index];
+
+  // 生成默认 prompt
+  const style_prefix = {
+    "3D玄幻": "3D fantasy style, mystical atmosphere, ",
+    "2D动画": "2D animation style, anime art, ",
+    "真人电影": "cinematic photography, realistic, movie scene, ",
+    "真人古装": "ancient Chinese costume drama, realistic photography, traditional attire, ",
+    "3D写实": "3D realistic rendering, photorealistic, high detail, "
+  }[selectedStyle] || "";
+
+  if (type === 'character') {
+    item.currentPrompt = `${style_prefix}Character design sheet: Large close-up portrait on the left showing detailed facial features, followed by full body character turnaround (front view, side view, back view). Character description: ${item.description}`;
+  } else {
+    item.currentPrompt = `${style_prefix}Scene design: ${item.description}`;
+  }
+
+  item.showPromptEditor = true;
+  renderLists();
+}
+
+function cancelPromptEditor(type, index) {
+  const item = type === 'character' ? characters[index] : scenes[index];
+  item.showPromptEditor = false;
+  renderLists();
+}
+
+function confirmGenerate(type, index) {
+  const nanobananaKey = document.getElementById('nanoBananaKey').value.trim();
+  if (!nanobananaKey) {
+    alert('请先填写 NanoBanana API Key');
+    return;
+  }
+
+  const item = type === 'character' ? characters[index] : scenes[index];
+  const prompt = document.getElementById(`prompt-text-${type}-${index}`).value;
+  const count = parseInt(document.getElementById(`prompt-count-${type}-${index}`).value) || 1;
+
   item.generating = true;
+  item.showPromptEditor = false;
   renderLists();
 
-  fetch('/api/generate_single_image', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      type: type,
-      name: item.name,
-      description: item.description,
-      style: selectedStyle,
-      nanobanana_api_key: nanobananaKey
-    })
-  }).then(r => r.json()).then(d => {
+  // 生成多张图片
+  const promises = [];
+  for (let i = 0; i < count; i++) {
+    promises.push(
+      fetch('/api/generate_single_image', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          type: type,
+          name: item.name,
+          prompt: prompt,  // 直接使用用户修改后的 prompt
+          model: selectedModel,
+          ratio: selectedRatio,
+          nanobanana_api_key: nanobananaKey
+        })
+      }).then(r => r.json())
+    );
+  }
+
+  Promise.all(promises).then(results => {
     item.generating = false;
-    if (d.error) {
-      alert('生成失败：' + d.error);
-    } else {
-      item.imageUrl = d.url;
+
+    const urls = [];
+    const errors = [];
+    results.forEach(d => {
+      if (d.error) {
+        errors.push(d.error);
+      } else if (d.url) {
+        urls.push(d.url);
+      }
+    });
+
+    if (urls.length > 0) {
+      // 添加新版本
+      item.images.push({
+        timestamp: new Date().toLocaleString('zh-CN'),
+        urls: urls
+      });
     }
+
+    if (errors.length > 0) {
+      alert(`部分生成失败：${errors.join(', ')}`);
+    }
+
     renderLists();
   }).catch(e => {
     item.generating = false;
@@ -1001,6 +1226,15 @@ function generateImage(type, index) {
 
 function goBack() {
   window.location.href = '/';
+}
+
+function showImageViewer(url) {
+  document.getElementById('viewerImage').src = url;
+  document.getElementById('imageViewer').classList.add('show');
+}
+
+function closeImageViewer() {
+  document.getElementById('imageViewer').classList.remove('show');
 }
 
 function escapeHtml(text) {
@@ -1240,13 +1474,19 @@ def api_generate_single_image():
         data = request.json or {}
         item_type = data.get("type")  # "character" or "scene"
         name = data.get("name")
-        description = data.get("description")
+        prompt = data.get("prompt")  # 直接使用的 prompt（优先）
+        description = data.get("description")  # 描述（用于自动生成 prompt）
         style = data.get("style")  # 风格选择
+        model = data.get("model")  # 模型选择
+        ratio = data.get("ratio", "16:9")  # 图片比例，默认 16:9
         nanobanana_key = data.get("nanobanana_api_key", "").strip()
 
         api_key = nanobanana_key or os.environ.get("NANOBANANA_API_KEY")
         if not api_key:
             return jsonify({"error": "缺少 NanoBanana API Key"}), 500
+
+        if not model:
+            return jsonify({"error": "请选择生成模型"}), 400
 
         api_url = "https://api.bltcy.ai/v1/images/generations"
         headers = {
@@ -1254,27 +1494,32 @@ def api_generate_single_image():
             "Content-Type": "application/json"
         }
 
-        # 构建 prompt
-        style_prefix = {
-            "3D玄幻": "3D fantasy style, mystical atmosphere, ",
-            "2D动画": "2D animation style, anime art, ",
-            "真人电影": "cinematic photography, realistic, movie scene, ",
-            "真人古装": "ancient Chinese costume drama, realistic photography, traditional attire, ",
-            "3D写实": "3D realistic rendering, photorealistic, high detail, "
-        }.get(style, "")
+        # 如果没有直接提供 prompt，则根据描述和风格生成
+        if not prompt:
+            style_prefix = {
+                "3D玄幻": "3D fantasy style, mystical atmosphere, ",
+                "2D动画": "2D animation style, anime art, ",
+                "真人电影": "cinematic photography, realistic, movie scene, ",
+                "真人古装": "ancient Chinese costume drama, realistic photography, traditional attire, ",
+                "3D写实": "3D realistic rendering, photorealistic, high detail, "
+            }.get(style, "")
 
-        if item_type == "character":
-            # 角色图：面部特写 + 三视图
-            prompt = f"{style_prefix}Character design sheet: Large close-up portrait on the left showing detailed facial features, followed by full body character turnaround (front view, side view, back view). Character description: {description}"
-        else:
-            # 场景图
-            prompt = f"{style_prefix}Scene design: {description}"
+            if item_type == "character":
+                prompt = f"{style_prefix}Character design sheet: Large close-up portrait on the left showing detailed facial features, followed by full body character turnaround (front view, side view, back view). Character description: {description}"
+            else:
+                prompt = f"{style_prefix}Scene design: {description}"
 
-        response = requests.post(api_url, headers=headers, json={
+        payload = {
             "prompt": prompt,
-            "n": 1,
-            "size": "1024x1024"
-        }, timeout=60)
+            "model": model,
+            "n": 1
+        }
+
+        # 添加 aspect_ratio 参数（如果不是默认值）
+        if ratio:
+            payload["aspect_ratio"] = ratio
+
+        response = requests.post(api_url, headers=headers, json=payload, timeout=180)
 
         if response.status_code == 200:
             result = response.json()
@@ -1284,7 +1529,8 @@ def api_generate_single_image():
             else:
                 return jsonify({"error": "API 返回数据格式错误"}), 500
         else:
-            return jsonify({"error": f"API 调用失败: {response.status_code}"}), 500
+            error_msg = response.text
+            return jsonify({"error": f"API 调用失败 ({response.status_code}): {error_msg}"}), 500
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
