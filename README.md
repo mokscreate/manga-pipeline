@@ -48,7 +48,7 @@ python server.py
    - **DeepSeek API Key**：用于生成文案、角色、场景、分镜
      - 注册地址：https://platform.deepseek.com/
    - **NanoBanana API Key**（可选）：用于生成角色和场景图片
-     - API 地址：https://api.bltcy.ai
+     - chinese可以用这个。API 地址：https://api.bltcy.ai
 
 2. **粘贴剧本内容**（完整剧本或草稿均可）
 
